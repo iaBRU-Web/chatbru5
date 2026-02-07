@@ -1,0 +1,416 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BruLive - Share Your Web Links & Group Chat</title>
+    <!-- Ably Realtime SDK via CDN -->
+    <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
+    <style>
+        :root {
+            --bg: #f0f4f8;
+            --text: #333;
+            --card: white;
+            --accent: #007bff;
+            --accent-dark: #0056b3;
+            --shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        body.dark {
+            --bg: #121212;
+            --text: #e0e0e0;
+            --card: #1e1e1e;
+            --accent: #4da6ff;
+            --accent-dark: #1a8cff;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+            transition: background 0.3s, color 0.3s;
+        }
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        h1 {
+            color: var(--accent);
+            margin: 0;
+            font-size: 2.8em;
+        }
+        #themeToggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--card);
+            border: none;
+            padding: 10px 15px;
+            border-radius: 50px;
+            cursor: pointer;
+            box-shadow: var(--shadow);
+            font-weight: bold;
+        }
+        #intro {
+            max-width: 700px;
+            margin: 0 auto 30px;
+            text-align: center;
+            font-size: 1.1em;
+        }
+        form#linkForm {
+            background: var(--card);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            max-width: 600px;
+            margin: 0 auto 40px;
+        }
+        input[type="url"], input[type="text"] {
+            width: 100%;
+            padding: 14px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 1em;
+            box-sizing: border-box;
+            transition: border 0.2s;
+        }
+        input:focus {
+            border-color: var(--accent);
+            outline: none;
+        }
+        button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 14px 28px;
+            border-radius: 8px;
+            font-size: 1.1em;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: var(--accent-dark);
+        }
+        #status {
+            text-align: center;
+            margin: 10px 0;
+            font-style: italic;
+            color: #666;
+        }
+        #linkList {
+            list-style: none;
+            padding: 0;
+            max-width: 800px;
+            margin: 0 auto 60px;
+        }
+        #linkList li {
+            background: var(--card);
+            margin: 15px 0;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            transition: transform 0.2s;
+        }
+        #linkList li:hover {
+            transform: translateY(-3px);
+        }
+        #linkList li img {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid var(--accent);
+            flex-shrink: 0;
+        }
+        #linkList li div {
+            flex: 1;
+        }
+        #linkList a {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+        #linkList a:hover {
+            text-decoration: underline;
+        }
+        #viewerContainer {
+            max-width: 1000px;
+            margin: 40px auto;
+            text-align: center;
+        }
+        #viewer {
+            width: 100%;
+            height: 70vh;
+            border: none;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+            background: #fff;
+            display: none;
+        }
+        #chatSection {
+            max-width: 700px;
+            margin: 0 auto;
+            background: var(--card);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: var(--shadow);
+        }
+        #chatLog {
+            height: 320px;
+            overflow-y: auto;
+            border: 1px solid #444;
+            padding: 15px;
+            margin-bottom: 15px;
+            background: var(--bg);
+            border-radius: 8px;
+        }
+        .chat-msg {
+            margin: 10px 0;
+            padding: 10px 15px;
+            border-radius: 18px;
+            max-width: 80%;
+        }
+        .chat-msg.sent {
+            background: var(--accent);
+            color: white;
+            margin-left: auto;
+        }
+        .chat-msg.received {
+            background: #e0e0e0;
+            color: #333;
+        }
+        body.dark .chat-msg.received {
+            background: #333;
+            color: #e0e0e0;
+        }
+        #chatForm {
+            display: flex;
+            gap: 10px;
+        }
+        #chatInput {
+            flex: 1;
+            padding: 14px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 1em;
+        }
+        footer {
+            text-align: center;
+            margin-top: 60px;
+            font-size: 0.9em;
+            color: #888;
+        }
+        .animate-fade {
+            animation: fadeIn 0.8s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @media (max-width: 600px) {
+            body { padding: 10px; }
+            #linkForm, #chatSection { padding: 15px; }
+            input, button { font-size: 0.95em; }
+        }
+    </style>
+</head>
+<body>
+    <button id="themeToggle">Dark Mode</button>
+
+    <header>
+        <h1>BruLive</h1>
+        <p id="intro">Share your website links forever! Add a link + thumbnail (profile pic), chat live with everyone, and view sites in a cool iframe. Everything updates in realtime — no login needed!</p>
+    </header>
+
+    <form id="linkForm">
+        <input type="url" id="linkInput" placeholder="Paste your website URL[](https://...)" required>
+        <input type="url" id="thumbnailInput" placeholder="Paste thumbnail / profile picture URL (e.g. https://your-site.com/logo.png)" required>
+        <button type="submit">Share Link</button>
+    </form>
+
+    <div id="status">Connecting to BruLive channel...</div>
+
+    <section id="linksSection">
+        <h2>Shared Links</h2>
+        <ul id="linkList"></ul>
+    </section>
+
+    <section id="viewerContainer">
+        <iframe id="viewer" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
+    </section>
+
+    <section id="chatSection">
+        <h2>Group Chat – Say Hi!</h2>
+        <div id="chatLog"></div>
+        <form id="chatForm">
+            <input type="text" id="chatInput" placeholder="Type your message here..." autocomplete="off">
+            <button type="submit">Send</button>
+        </form>
+    </section>
+
+    <footer>
+        Special thanks to INEZA AIME BRUNO<br>
+        @NoCopyright Allowed<br>
+        @All Rights Reserved © 2026
+    </footer>
+
+    <script>
+        // =============================================
+        // Ably Setup – Hardcoded Key (for demo only!)
+        // =============================================
+        const API_KEY = 'y9xXqg.2tUnig:I55mAICO-q_qpR1KKt97PLYJinu_GSA8tuU760URSbM';
+        const CHANNEL_NAME = 'brulive';
+
+        const ably = new Ably.Realtime({
+            key: API_KEY,
+            echoMessages: false // Don't echo your own messages back
+        });
+
+        const channel = ably.channels.get(CHANNEL_NAME);
+
+        // Connection status
+        const statusEl = document.getElementById('status');
+        ably.connection.on('connected', () => {
+            statusEl.textContent = 'Connected! Ready to share & chat.';
+            statusEl.style.color = 'green';
+        });
+        ably.connection.on('failed', () => {
+            statusEl.textContent = 'Connection failed. Check key or internet.';
+            statusEl.style.color = 'red';
+        });
+
+        // =============================================
+        // Link Handling
+        // =============================================
+        const linkList = document.getElementById('linkList');
+        const linkForm = document.getElementById('linkForm');
+
+        function addLinkToUI(linkData, animate = true) {
+            const li = document.createElement('li');
+            if (animate) li.classList.add('animate-fade');
+
+            li.innerHTML = `
+                <img src="${linkData.thumbnail}" alt="Thumbnail" onerror="this.src='https://via.placeholder.com/60?text=?'">
+                <div>
+                    <a href="#" onclick="openInIframe('${linkData.link}'); return false;">${linkData.link}</a>
+                    <small>Shared just now</small>
+                </div>
+            `;
+            linkList.appendChild(li);
+            // Scroll to bottom if many links
+            linkList.scrollTop = linkList.scrollHeight;
+        }
+
+        // Live new link
+        channel.subscribe('new_link', (msg) => {
+            addLinkToUI(msg.data);
+        });
+
+        // Submit new link
+        linkForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const link = document.getElementById('linkInput').value.trim();
+            const thumb = document.getElementById('thumbnailInput').value.trim();
+
+            if (!link || !thumb) {
+                alert('Please fill both fields!');
+                return;
+            }
+
+            if (!link.startsWith('http')) {
+                alert('Link must start with http/https');
+                return;
+            }
+
+            channel.publish('new_link', { link, thumbnail: thumb });
+            linkForm.reset();
+            statusEl.textContent = 'Link shared live!';
+            setTimeout(() => statusEl.textContent = 'Connected! Ready to share & chat.', 3000);
+        });
+
+        // =============================================
+        // Chat Handling
+        // =============================================
+        const chatLog = document.getElementById('chatLog');
+        const chatForm = document.getElementById('chatForm');
+        const chatInput = document.getElementById('chatInput');
+
+        function addChatMessage(text, isOwn = false) {
+            const div = document.createElement('div');
+            div.classList.add('chat-msg', isOwn ? 'sent' : 'received');
+            div.classList.add('animate-fade');
+            div.textContent = text;
+            chatLog.appendChild(div);
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+
+        // Live chat messages
+        channel.subscribe('chat_message', (msg) => {
+            addChatMessage(msg.data.text);
+        });
+
+        // Send chat
+        chatForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const text = chatInput.value.trim();
+            if (!text) return;
+
+            channel.publish('chat_message', { text });
+            addChatMessage(text, true); // Show as "sent" for UX
+            chatInput.value = '';
+        });
+
+        // =============================================
+        // Load History (persistence!)
+        // =============================================
+        channel.history({ limit: 100, direction: 'forwards' }, (err, page) => {
+            if (err) {
+                console.error('History error:', err);
+                statusEl.textContent = 'History load failed – but realtime still works!';
+                return;
+            }
+
+            page.items.forEach((msg) => {
+                if (msg.name === 'new_link') {
+                    addLinkToUI(msg.data, false); // No animate on load
+                } else if (msg.name === 'chat_message') {
+                    addChatMessage(msg.data.text);
+                }
+            });
+
+            // Final status
+            statusEl.textContent = `Loaded ${page.items.length} past items!`;
+        });
+
+        // =============================================
+        // Iframe Viewer
+        // =============================================
+        function openInIframe(url) {
+            const viewer = document.getElementById('viewer');
+            viewer.src = url;
+            viewer.style.display = 'block';
+            window.scrollTo({ top: viewer.offsetTop - 20, behavior: 'smooth' });
+        }
+
+        // =============================================
+        // Dark Mode Toggle
+        // =============================================
+        const toggleBtn = document.getElementById('themeToggle');
+        toggleBtn.addEventListener('click', () => {
+            document.body.classList.toggle('dark');
+            toggleBtn.textContent = document.body.classList.contains('dark') ? 'Light Mode' : 'Dark Mode';
+        });
+
+        // =============================================
+        // Ready!
+        // =============================================
+        console.log('BruLive ready – powered by Ably on channel: ' + CHANNEL_NAME);
+    </script>
+</body>
+</html>

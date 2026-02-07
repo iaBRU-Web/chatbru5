@@ -5,58 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>BruLive – Live Links & Group Chat</title>
     <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
-
-</head>
-<body>
-    <button id="themeToggle">Dark Mode</button>
-
-    <header>
-        <h1>BruLive</h1>
-        <p id="intro">Live link sharing + group chat. Thumbnail optional. Messages & links persist via Ably history. Click site name for iframe preview. Search works live.</p>
-    </header>
-
-    <div class="container">
-
-        <div class="card">
-            <form id="linkForm">
-                <input type="url" id="linkInput" placeholder="https://your-site.com" required aria-label="Website URL">
-                <input type="url" id="thumbnailInput" placeholder="Thumbnail (optional) – https://..." aria-label="Thumbnail URL (optional)">
-                <input type="text" id="siteNameInput" placeholder="My Awesome Project" required aria-label="Site Name">
-                <button type="submit">Share Site</button>
-            </form>
-            <div id="status">Connecting to brulive channel...</div>
-        </div>
-
-        <div class="card" id="searchContainer">
-            <input type="text" id="searchInput" placeholder="Search sites by name or URL...">
-        </div>
-
-        <div class="card">
-            <h2 style="margin-bottom:16px;">Shared Sites</h2>
-            <ul id="linkList"></ul>
-        </div>
-
-        <iframe id="viewer" sandbox="allow-scripts allow-same-origin allow-popups allow-forms" title="Site Preview"></iframe>
-
-        <div class="card" id="chatSection">
-            <h2>Live Group Chat</h2>
-            <div id="chatLog"></div>
-            <form id="chatForm">
-                <input type="text" id="chatInput" placeholder="Type your message..." autocomplete="off">
-                <button type="submit">Send</button>
-            </form>
-            <button id="clearChat" class="btn-small" style="margin-top:12px;background:#718096;">Clear Chat (local view only)</button>
-        </div>
-
-    </div>
-
-    <footer>
-        Special thanks to INEZA AIME BRUNO<br>
-        @NoCopyright Allowed<br>
-        @All Rights Reserved © 2026
-    </footer>
-
-    <div id="toast" class="toast"></div>
     <style>
         :root {
             --bg: #f5f7fa;
@@ -177,12 +125,68 @@
         .hidden { display: none !important; }
         @media (max-width: 640px) { body { padding: 12px; } .card { padding: 16px; } h1 { font-size: 2.2rem; } }
     </style>
+</head>
+<body>
+    <button id="themeToggle">Dark Mode</button>
+
+    <header>
+        <h1>BruLive</h1>
+        <p id="intro">Live link sharing + group chat. Thumbnail optional. Messages & links persist via Ably history. Click site name for iframe preview. Search works live.</p>
+    </header>
+
+    <div class="container">
+
+        <div class="card">
+            <form id="linkForm">
+                <input type="url" id="linkInput" placeholder="https://your-site.com" required aria-label="Website URL">
+                <input type="url" id="thumbnailInput" placeholder="Thumbnail (optional) – https://..." aria-label="Thumbnail URL (optional)">
+                <input type="text" id="siteNameInput" placeholder="My Awesome Project" required aria-label="Site Name">
+                <button type="submit">Share Site</button>
+            </form>
+            <div id="status">Connecting to brulive channel...</div>
+        </div>
+
+        <div class="card" id="searchContainer">
+            <input type="text" id="searchInput" placeholder="Search sites by name or URL...">
+        </div>
+
+        <div class="card">
+            <h2 style="margin-bottom:16px;">Shared Sites</h2>
+            <ul id="linkList"></ul>
+        </div>
+
+        <iframe id="viewer" sandbox="allow-scripts allow-same-origin allow-popups allow-forms" title="Site Preview"></iframe>
+
+        <div class="card" id="chatSection">
+            <h2>Live Group Chat</h2>
+            <div id="chatLog"></div>
+            <form id="chatForm">
+                <input type="text" id="chatInput" placeholder="Type your message..." autocomplete="off">
+                <button type="submit">Send</button>
+            </form>
+            <button id="clearChat" class="btn-small" style="margin-top:12px;background:#718096;">Clear Chat (local view only)</button>
+        </div>
+
+    </div>
+
+    <footer>
+        Special thanks to INEZA AIME BRUNO<br>
+        @NoCopyright Allowed<br>
+        @All Rights Reserved © 2026
+    </footer>
+
+    <div id="toast" class="toast"></div>
+
     <script>
-        // CONFIG
+        // ────────────────────────────────────────────────
+        // CONFIG – hardcoded as requested
+        // ────────────────────────────────────────────────
         const API_KEY = 'y9xXqg.2tUnig:I55mAICO-q_qpR1KKt97PLYJinu_GSA8tuU760URSbM';
         const CHANNEL_NAME = 'brulive';
 
+        // ────────────────────────────────────────────────
         // INIT ABLY
+        // ────────────────────────────────────────────────
         const ably = new Ably.Realtime({ key: API_KEY, echoMessages: false });
         const channel = ably.channels.get(CHANNEL_NAME);
 
@@ -196,7 +200,9 @@
             statusEl.className = type;
         }
 
+        // ────────────────────────────────────────────────
         // LINK SHARING
+        // ────────────────────────────────────────────────
         const linkForm   = document.getElementById('linkForm');
         const linkList   = document.getElementById('linkList');
         const searchInput = document.getElementById('searchInput');
@@ -267,7 +273,9 @@
             linkForm.reset();
         });
 
+        // ────────────────────────────────────────────────
         // SEARCH
+        // ────────────────────────────────────────────────
         searchInput.addEventListener('input', e => {
             const term = e.target.value.toLowerCase().trim();
             document.querySelectorAll('.link-item').forEach(item => {
@@ -275,7 +283,9 @@
             });
         });
 
+        // ────────────────────────────────────────────────
         // CHAT
+        // ────────────────────────────────────────────────
         const chatForm   = document.getElementById('chatForm');
         const chatInput  = document.getElementById('chatInput');
         const chatLog    = document.getElementById('chatLog');
@@ -316,11 +326,13 @@
             showToast('Chat cleared (your view only)');
         };
 
-        // HISTORY – loads past messages/links
-        channel.history({ limit: 300, direction: 'forwards' }, (err, page) => {
+        // ────────────────────────────────────────────────
+        // HISTORY – loads past items (requires persistence enabled in Ably dashboard)
+        // ────────────────────────────────────────────────
+        channel.history({ limit: 500, direction: 'forwards' }, (err, page) => {
             if (err) {
                 setStatus('History load failed – realtime still works', 'error');
-                console.error(err);
+                console.error('History error:', err);
                 return;
             }
 
@@ -343,7 +355,9 @@
             }
         });
 
+        // ────────────────────────────────────────────────
         // HELPERS
+        // ────────────────────────────────────────────────
         function openPreview(url) {
             const iframe = document.getElementById('viewer');
             iframe.src = url;
@@ -366,7 +380,7 @@
                 document.body.classList.contains('dark') ? 'Light Mode' : 'Dark Mode';
         };
 
-        console.log('BruLive ready – channel: brulive');
+        console.log('BruLive ready – channel: brulive – key hardcoded');
     </script>
 </body>
 </html>

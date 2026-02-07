@@ -131,7 +131,7 @@
 
     <header>
         <h1>BruLive</h1>
-        <p id="intro">Everything live & persistent via Ably history (links & messages stay visible to all). Thumbnail optional. Click site name to preview in iframe. Search works live.</p>
+        <p id="intro">Live link sharing + group chat. Thumbnail optional. Messages & links persist via Ably history. Click site name for iframe preview. Search works live.</p>
     </header>
 
     <div class="container">
@@ -236,6 +236,8 @@
         channel.subscribe('new_link', msg => {
             linksCache.push(msg.data);
             addLink(msg.data);
+            setStatus('New link added live!', 'success');
+            setTimeout(() => setStatus('Connected live ✓', 'success'), 3000);
         });
 
         linkForm.addEventListener('submit', e => {
@@ -254,7 +256,6 @@
                 return;
             }
 
-            // Thumbnail optional – clean or empty
             if (thumb && !/^https?:\/\//i.test(thumb)) {
                 showToast('Thumbnail (if used) must start with http:// or https://', 'error');
                 return;
@@ -315,7 +316,7 @@
             showToast('Chat cleared (your view only)');
         };
 
-        // HISTORY – makes everything "never delete" within Ably retention
+        // HISTORY – loads past messages/links
         channel.history({ limit: 300, direction: 'forwards' }, (err, page) => {
             if (err) {
                 setStatus('History load failed – realtime still works', 'error');
@@ -323,16 +324,23 @@
                 return;
             }
 
+            let loadedCount = 0;
             page.items.forEach(msg => {
                 if (msg.name === 'new_link') {
                     linksCache.push(msg.data);
                     addLink(msg.data, false);
+                    loadedCount++;
                 } else if (msg.name === 'chat_message') {
                     addMessage(msg.data.text, msg.data.sender, new Date(msg.data.ts));
+                    loadedCount++;
                 }
             });
 
-            setStatus(`Loaded ${page.items.length} past items from history`, 'success');
+            if (loadedCount > 0) {
+                setStatus(`Loaded ${loadedCount} past items from history`, 'success');
+            } else {
+                setStatus('No past items found – share something new!', 'success');
+            }
         });
 
         // HELPERS
@@ -358,7 +366,7 @@
                 document.body.classList.contains('dark') ? 'Light Mode' : 'Dark Mode';
         };
 
-        console.log('BruLive ready – live & persistent via Ably history');
+        console.log('BruLive ready – channel: brulive');
     </script>
 </body>
 </html>

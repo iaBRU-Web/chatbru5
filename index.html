@@ -6,7 +6,48 @@
     <title>BruLive - Share Your Web Links & Group Chat</title>
     <!-- Ably Realtime SDK via CDN -->
     <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
-    <style>
+ 
+</head>
+<body>
+    <button id="themeToggle">Dark Mode</button>
+
+    <header>
+        <h1>BruLive</h1>
+        <p id="intro">Share your website links forever! Add a link + thumbnail (profile pic), chat live with everyone, and view sites in a cool iframe. Everything updates in realtime — no login needed!</p>
+    </header>
+
+    <form id="linkForm">
+        <input type="url" id="linkInput" placeholder="Paste your website URL[](https://...)" required>
+        <input type="url" id="thumbnailInput" placeholder="Paste thumbnail / profile picture URL (e.g. https://your-site.com/logo.png)" required>
+        <button type="submit">Share Link</button>
+    </form>
+
+    <div id="status">Connecting to BruLive channel...</div>
+
+    <section id="linksSection">
+        <h2>Shared Links</h2>
+        <ul id="linkList"></ul>
+    </section>
+
+    <section id="viewerContainer">
+        <iframe id="viewer" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
+    </section>
+
+    <section id="chatSection">
+        <h2>Group Chat – Say Hi!</h2>
+        <div id="chatLog"></div>
+        <form id="chatForm">
+            <input type="text" id="chatInput" placeholder="Type your message here..." autocomplete="off">
+            <button type="submit">Send</button>
+        </form>
+    </section>
+
+    <footer>
+        Special thanks to INEZA AIME BRUNO<br>
+        @NoCopyright Allowed<br>
+        @All Rights Reserved © 2026
+    </footer>
+   <style>
         :root {
             --bg: #f0f4f8;
             --text: #333;
@@ -218,48 +259,7 @@
             #linkForm, #chatSection { padding: 15px; }
             input, button { font-size: 0.95em; }
         }
-    </style>
-</head>
-<body>
-    <button id="themeToggle">Dark Mode</button>
-
-    <header>
-        <h1>BruLive</h1>
-        <p id="intro">Share your website links forever! Add a link + thumbnail (profile pic), chat live with everyone, and view sites in a cool iframe. Everything updates in realtime — no login needed!</p>
-    </header>
-
-    <form id="linkForm">
-        <input type="url" id="linkInput" placeholder="Paste your website URL[](https://...)" required>
-        <input type="url" id="thumbnailInput" placeholder="Paste thumbnail / profile picture URL (e.g. https://your-site.com/logo.png)" required>
-        <button type="submit">Share Link</button>
-    </form>
-
-    <div id="status">Connecting to BruLive channel...</div>
-
-    <section id="linksSection">
-        <h2>Shared Links</h2>
-        <ul id="linkList"></ul>
-    </section>
-
-    <section id="viewerContainer">
-        <iframe id="viewer" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
-    </section>
-
-    <section id="chatSection">
-        <h2>Group Chat – Say Hi!</h2>
-        <div id="chatLog"></div>
-        <form id="chatForm">
-            <input type="text" id="chatInput" placeholder="Type your message here..." autocomplete="off">
-            <button type="submit">Send</button>
-        </form>
-    </section>
-
-    <footer>
-        Special thanks to INEZA AIME BRUNO<br>
-        @NoCopyright Allowed<br>
-        @All Rights Reserved © 2026
-    </footer>
-
+    </style>s
     <script>
         // =============================================
         // Ably Setup – Hardcoded Key (for demo only!)

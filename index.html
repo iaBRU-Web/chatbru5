@@ -6,48 +6,7 @@
     <title>BruLive - Share Your Web Links & Group Chat</title>
     <!-- Ably Realtime SDK via CDN -->
     <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
- 
-</head>
-<body>
-    <button id="themeToggle">Dark Mode</button>
-
-    <header>
-        <h1>BruLive</h1>
-        <p id="intro">Share your website links forever! Add a link + thumbnail (profile pic), chat live with everyone, and view sites in a cool iframe. Everything updates in realtime — no login needed!</p>
-    </header>
-
-    <form id="linkForm">
-        <input type="url" id="linkInput" placeholder="Paste your website URL[](https://...)" required>
-        <input type="url" id="thumbnailInput" placeholder="Paste thumbnail / profile picture URL (e.g. https://your-site.com/logo.png)" required>
-        <button type="submit">Share Link</button>
-    </form>
-
-    <div id="status">Connecting to BruLive channel...</div>
-
-    <section id="linksSection">
-        <h2>Shared Links</h2>
-        <ul id="linkList"></ul>
-    </section>
-
-    <section id="viewerContainer">
-        <iframe id="viewer" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
-    </section>
-
-    <section id="chatSection">
-        <h2>Group Chat – Say Hi!</h2>
-        <div id="chatLog"></div>
-        <form id="chatForm">
-            <input type="text" id="chatInput" placeholder="Type your message here..." autocomplete="off">
-            <button type="submit">Send</button>
-        </form>
-    </section>
-
-    <footer>
-        Special thanks to INEZA AIME BRUNO<br>
-        @NoCopyright Allowed<br>
-        @All Rights Reserved © 2026
-    </footer>
-   <style>
+    <style>
         :root {
             --bg: #f0f4f8;
             --text: #333;
@@ -140,6 +99,19 @@
             font-style: italic;
             color: #666;
         }
+        #searchContainer {
+            max-width: 600px;
+            margin: 20px auto;
+            text-align: center;
+        }
+        #searchInput {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 1em;
+            box-sizing: border-box;
+        }
         #linkList {
             list-style: none;
             padding: 0;
@@ -179,6 +151,11 @@
         }
         #linkList a:hover {
             text-decoration: underline;
+        }
+        #linkList li small {
+            display: block;
+            color: #888;
+            font-size: 0.9em;
         }
         #viewerContainer {
             max-width: 1000px;
@@ -254,12 +231,61 @@
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        .hidden {
+            display: none !important;
+        }
         @media (max-width: 600px) {
             body { padding: 10px; }
             #linkForm, #chatSection { padding: 15px; }
             input, button { font-size: 0.95em; }
         }
-    </style>s
+    </style>
+</head>
+<body>
+    <button id="themeToggle">Dark Mode</button>
+
+    <header>
+        <h1>BruLive</h1>
+        <p id="intro">Share your website links forever! Add a link + thumbnail (profile pic) + site name, chat live with everyone, and view sites in a cool iframe. Everything updates in realtime — no login needed! Search for shared sites below.</p>
+    </header>
+
+    <form id="linkForm">
+        <input type="url" id="linkInput" placeholder="Paste your website URL[](https://...)" required>
+        <input type="url" id="thumbnailInput" placeholder="Paste thumbnail / profile picture URL (e.g. https://your-site.com/logo.png)" required>
+        <input type="text" id="siteNameInput" placeholder="Enter your site's name (e.g. My Cool Blog)" required>
+        <button type="submit">Share Link</button>
+    </form>
+
+    <div id="status">Connecting to BruLive channel...</div>
+
+    <div id="searchContainer">
+        <input type="text" id="searchInput" placeholder="Search shared sites by name or URL...">
+    </div>
+
+    <section id="linksSection">
+        <h2>Shared Links</h2>
+        <ul id="linkList"></ul>
+    </section>
+
+    <section id="viewerContainer">
+        <iframe id="viewer" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
+    </section>
+
+    <section id="chatSection">
+        <h2>Group Chat – Say Hi!</h2>
+        <div id="chatLog"></div>
+        <form id="chatForm">
+            <input type="text" id="chatInput" placeholder="Type your message here..." autocomplete="off">
+            <button type="submit">Send</button>
+        </form>
+    </section>
+
+    <footer>
+        Special thanks to INEZA AIME BRUNO<br>
+        @NoCopyright Allowed<br>
+        @All Rights Reserved © 2026
+    </footer>
+
     <script>
         // =============================================
         // Ably Setup – Hardcoded Key (for demo only!)
@@ -290,6 +316,7 @@
         // =============================================
         const linkList = document.getElementById('linkList');
         const linkForm = document.getElementById('linkForm');
+        let allLinks = []; // Store all loaded links for searching
 
         function addLinkToUI(linkData, animate = true) {
             const li = document.createElement('li');
@@ -298,17 +325,18 @@
             li.innerHTML = `
                 <img src="${linkData.thumbnail}" alt="Thumbnail" onerror="this.src='https://via.placeholder.com/60?text=?'">
                 <div>
-                    <a href="#" onclick="openInIframe('${linkData.link}'); return false;">${linkData.link}</a>
-                    <small>Shared just now</small>
+                    <a href="#" onclick="openInIframe('${linkData.link}'); return false;">${linkData.siteName || linkData.link}</a>
+                    <small>Site: ${linkData.siteName || 'Unnamed'} | URL: ${linkData.link}</small>
                 </div>
             `;
+            li.dataset.searchText = (linkData.siteName + ' ' + linkData.link).toLowerCase(); // For search
             linkList.appendChild(li);
-            // Scroll to bottom if many links
-            linkList.scrollTop = linkList.scrollHeight;
+            if (animate) linkList.scrollTop = linkList.scrollHeight;
         }
 
         // Live new link
         channel.subscribe('new_link', (msg) => {
+            allLinks.push(msg.data);
             addLinkToUI(msg.data);
         });
 
@@ -317,21 +345,46 @@
             e.preventDefault();
             const link = document.getElementById('linkInput').value.trim();
             const thumb = document.getElementById('thumbnailInput').value.trim();
+            const siteName = document.getElementById('siteNameInput').value.trim();
 
-            if (!link || !thumb) {
-                alert('Please fill both fields!');
+            if (!link || !thumb || !siteName) {
+                alert('Please fill all fields: URL, Thumbnail, and Site Name!');
                 return;
             }
 
             if (!link.startsWith('http')) {
-                alert('Link must start with http/https');
+                alert('URL must start with http or https!');
                 return;
             }
 
-            channel.publish('new_link', { link, thumbnail: thumb });
+            if (!thumb.startsWith('http')) {
+                alert('Thumbnail URL must start with http or https!');
+                return;
+            }
+
+            const data = { link, thumbnail: thumb, siteName };
+            channel.publish('new_link', data);
+            allLinks.push(data);
             linkForm.reset();
             statusEl.textContent = 'Link shared live!';
             setTimeout(() => statusEl.textContent = 'Connected! Ready to share & chat.', 3000);
+        });
+
+        // =============================================
+        // Search Functionality
+        // =============================================
+        const searchInput = document.getElementById('searchInput');
+        searchInput.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase().trim();
+            const items = linkList.querySelectorAll('li');
+
+            items.forEach((li) => {
+                if (query === '' || li.dataset.searchText.includes(query)) {
+                    li.classList.remove('hidden');
+                } else {
+                    li.classList.add('hidden');
+                }
+            });
         });
 
         // =============================================
@@ -369,7 +422,7 @@
         // =============================================
         // Load History (persistence!)
         // =============================================
-        channel.history({ limit: 100, direction: 'forwards' }, (err, page) => {
+        channel.history({ limit: 200, direction: 'forwards' }, (err, page) => {
             if (err) {
                 console.error('History error:', err);
                 statusEl.textContent = 'History load failed – but realtime still works!';
@@ -378,6 +431,7 @@
 
             page.items.forEach((msg) => {
                 if (msg.name === 'new_link') {
+                    allLinks.push(msg.data);
                     addLinkToUI(msg.data, false); // No animate on load
                 } else if (msg.name === 'chat_message') {
                     addChatMessage(msg.data.text);

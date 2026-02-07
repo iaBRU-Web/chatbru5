@@ -3,242 +3,127 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BruLive - Share Your Web Links & Group Chat</title>
-    <!-- Ably Realtime SDK via CDN -->
+    <title>BruLive – Live Links & Group Chat</title>
     <script src="https://cdn.ably.com/lib/ably.min-1.js"></script>
     <style>
         :root {
-            --bg: #f0f4f8;
-            --text: #333;
-            --card: white;
-            --accent: #007bff;
-            --accent-dark: #0056b3;
-            --shadow: 0 4px 12px rgba(0,0,0,0.1);
+            --bg: #f5f7fa;
+            --text: #2d3748;
+            --card: #ffffff;
+            --accent: #3182ce;
+            --accent-dark: #2b6cb0;
+            --success: #38a169;
+            --error: #e53e3e;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.08);
+            --shadow: 0 4px 20px rgba(0,0,0,0.1);
         }
         body.dark {
-            --bg: #121212;
-            --text: #e0e0e0;
-            --card: #1e1e1e;
-            --accent: #4da6ff;
-            --accent-dark: #1a8cff;
+            --bg: #1a202c;
+            --text: #e2e8f0;
+            --card: #2d3748;
+            --accent: #63b3ed;
+            --accent-dark: #4299e1;
+            --success: #68d391;
+            --error: #fc8181;
         }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: system-ui, -apple-system, sans-serif;
             background: var(--bg);
             color: var(--text);
-            margin: 0;
-            padding: 20px;
-            line-height: 1.6;
-            transition: background 0.3s, color 0.3s;
+            min-height: 100vh;
+            padding: 16px;
+            transition: background 0.4s, color 0.4s;
         }
-        header {
-            text-align: center;
-            margin-bottom: 30px;
-        }
-        h1 {
-            color: var(--accent);
-            margin: 0;
-            font-size: 2.8em;
-        }
+        header { text-align: center; padding: 20px 0 32px; }
+        h1 { font-size: 2.8rem; color: var(--accent); margin-bottom: 8px; }
+        #intro { max-width: 720px; margin: 0 auto 24px; font-size: 1.1rem; opacity: 0.9; }
         #themeToggle {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: var(--card);
-            border: none;
-            padding: 10px 15px;
-            border-radius: 50px;
-            cursor: pointer;
-            box-shadow: var(--shadow);
-            font-weight: bold;
+            position: fixed; top: 16px; right: 16px; z-index: 100;
+            background: var(--card); border: none; padding: 10px 16px;
+            border-radius: 999px; cursor: pointer; font-weight: 600;
+            box-shadow: var(--shadow-sm); transition: all 0.3s;
         }
-        #intro {
-            max-width: 700px;
-            margin: 0 auto 30px;
-            text-align: center;
-            font-size: 1.1em;
+        #themeToggle:hover { transform: scale(1.05); }
+        .container { max-width: 820px; margin: 0 auto; }
+        .card {
+            background: var(--card); border-radius: 16px;
+            box-shadow: var(--shadow); padding: 24px; margin-bottom: 32px;
         }
-        form#linkForm {
-            background: var(--card);
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: var(--shadow);
-            max-width: 600px;
-            margin: 0 auto 40px;
-        }
-        input[type="url"], input[type="text"] {
-            width: 100%;
-            padding: 14px;
-            margin: 10px 0;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            font-size: 1em;
-            box-sizing: border-box;
-            transition: border 0.2s;
+        form { display: flex; flex-direction: column; gap: 16px; }
+        input, button {
+            padding: 14px 16px; border-radius: 10px; font-size: 1rem;
+            border: 1px solid #cbd5e0; transition: all 0.2s;
         }
         input:focus {
-            border-color: var(--accent);
-            outline: none;
+            outline: none; border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(49,130,206,0.2);
         }
         button {
-            background: var(--accent);
-            color: white;
-            border: none;
-            padding: 14px 28px;
-            border-radius: 8px;
-            font-size: 1.1em;
-            cursor: pointer;
-            transition: background 0.3s;
+            background: var(--accent); color: white; border: none;
+            font-weight: 600; cursor: pointer;
         }
-        button:hover {
-            background: var(--accent-dark);
-        }
-        #status {
-            text-align: center;
-            margin: 10px 0;
-            font-style: italic;
-            color: #666;
-        }
-        #searchContainer {
-            max-width: 600px;
-            margin: 20px auto;
-            text-align: center;
-        }
+        button:hover { background: var(--accent-dark); }
+        #status { text-align: center; margin: 12px 0; font-weight: 500; min-height: 24px; }
+        .success { color: var(--success); }
+        .error { color: var(--error); }
+        #searchContainer { margin: 24px 0; }
         #searchInput {
-            width: 100%;
-            padding: 14px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            font-size: 1em;
-            box-sizing: border-box;
+            width: 100%; padding: 14px 16px; border: 1px solid #cbd5e0;
+            border-radius: 10px; font-size: 1rem;
         }
-        #linkList {
-            list-style: none;
-            padding: 0;
-            max-width: 800px;
-            margin: 0 auto 60px;
+        #linkList { list-style: none; display: grid; gap: 16px; }
+        .link-item {
+            background: var(--card); border-radius: 12px; padding: 16px;
+            box-shadow: var(--shadow-sm); display: flex; align-items: center;
+            gap: 16px; transition: transform 0.2s, box-shadow 0.2s;
         }
-        #linkList li {
-            background: var(--card);
-            margin: 15px 0;
-            padding: 15px;
-            border-radius: 12px;
-            box-shadow: var(--shadow);
-            display: flex;
-            align-items: center;
-            gap: 15px;
-            transition: transform 0.2s;
+        .link-item:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
+        .link-item img {
+            width: 64px; height: 64px; border-radius: 50%; object-fit: cover;
+            border: 3px solid var(--accent); flex-shrink: 0; loading: lazy;
         }
-        #linkList li:hover {
-            transform: translateY(-3px);
+        .link-info { flex: 1; }
+        .link-title {
+            font-size: 1.15rem; font-weight: 600; color: var(--accent);
+            text-decoration: none; display: block; margin-bottom: 4px;
         }
-        #linkList li img {
-            width: 60px;
-            height: 60px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 2px solid var(--accent);
-            flex-shrink: 0;
-        }
-        #linkList li div {
-            flex: 1;
-        }
-        #linkList a {
-            color: var(--accent);
-            text-decoration: none;
-            font-weight: bold;
-            font-size: 1.1em;
-        }
-        #linkList a:hover {
-            text-decoration: underline;
-        }
-        #linkList li small {
-            display: block;
-            color: #888;
-            font-size: 0.9em;
-        }
-        #viewerContainer {
-            max-width: 1000px;
-            margin: 40px auto;
-            text-align: center;
-        }
+        .link-url { font-size: 0.9rem; color: #718096; word-break: break-all; }
+        .actions { display: flex; gap: 12px; }
+        .btn-small { padding: 8px 14px; font-size: 0.9rem; border-radius: 8px; }
         #viewer {
-            width: 100%;
-            height: 70vh;
-            border: none;
-            border-radius: 12px;
-            box-shadow: var(--shadow);
-            background: #fff;
-            display: none;
+            width: 100%; height: 75vh; border: none; border-radius: 16px;
+            box-shadow: var(--shadow); background: white; display: none;
+            margin: 32px 0;
         }
-        #chatSection {
-            max-width: 700px;
-            margin: 0 auto;
-            background: var(--card);
-            padding: 20px;
-            border-radius: 12px;
-            box-shadow: var(--shadow);
-        }
+        #chatSection .card { padding: 20px; }
         #chatLog {
-            height: 320px;
-            overflow-y: auto;
-            border: 1px solid #444;
-            padding: 15px;
-            margin-bottom: 15px;
-            background: var(--bg);
-            border-radius: 8px;
+            height: 340px; overflow-y: auto; padding: 16px;
+            background: rgba(0,0,0,0.03); border-radius: 12px; margin-bottom: 16px;
         }
         .chat-msg {
-            margin: 10px 0;
-            padding: 10px 15px;
-            border-radius: 18px;
-            max-width: 80%;
+            margin: 12px 0; padding: 12px 16px; border-radius: 18px;
+            max-width: 80%; position: relative;
         }
         .chat-msg.sent {
-            background: var(--accent);
-            color: white;
-            margin-left: auto;
+            background: var(--accent); color: white; margin-left: auto;
         }
-        .chat-msg.received {
-            background: #e0e0e0;
-            color: #333;
+        .chat-msg.received { background: #edf2f7; color: var(--text); }
+        body.dark .chat-msg.received { background: #4a5568; }
+        .msg-time { font-size: 0.75rem; opacity: 0.7; margin-top: 4px; text-align: right; }
+        #chatForm { display: flex; gap: 12px; }
+        #chatInput { flex: 1; }
+        .toast {
+            position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+            background: #333; color: white; padding: 12px 24px;
+            border-radius: 8px; opacity: 0; transition: opacity 0.4s; z-index: 200;
         }
-        body.dark .chat-msg.received {
-            background: #333;
-            color: #e0e0e0;
-        }
-        #chatForm {
-            display: flex;
-            gap: 10px;
-        }
-        #chatInput {
-            flex: 1;
-            padding: 14px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            font-size: 1em;
-        }
-        footer {
-            text-align: center;
-            margin-top: 60px;
-            font-size: 0.9em;
-            color: #888;
-        }
-        .animate-fade {
-            animation: fadeIn 0.8s ease-in;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .hidden {
-            display: none !important;
-        }
-        @media (max-width: 600px) {
-            body { padding: 10px; }
-            #linkForm, #chatSection { padding: 15px; }
-            input, button { font-size: 0.95em; }
-        }
+        .toast.show { opacity: 1; }
+        footer { text-align: center; margin-top: 60px; font-size: 0.95rem; color: #718096; padding: 20px 0; }
+        .animate-fade-in { animation: fadeIn 0.6s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+        .hidden { display: none !important; }
+        @media (max-width: 640px) { body { padding: 12px; } .card { padding: 16px; } h1 { font-size: 2.2rem; } }
     </style>
 </head>
 <body>
@@ -246,39 +131,43 @@
 
     <header>
         <h1>BruLive</h1>
-        <p id="intro">Share your website links forever! Add a link + thumbnail (profile pic) + site name, chat live with everyone, and view sites in a cool iframe. Everything updates in realtime — no login needed! Search for shared sites below.</p>
+        <p id="intro">Everything live & persistent via Ably history (links & messages stay visible to all). Thumbnail optional. Click site name to preview in iframe. Search works live.</p>
     </header>
 
-    <form id="linkForm">
-        <input type="url" id="linkInput" placeholder="Paste your website URL[](https://...)" required>
-        <input type="url" id="thumbnailInput" placeholder="Paste thumbnail / profile picture URL (e.g. https://your-site.com/logo.png)" required>
-        <input type="text" id="siteNameInput" placeholder="Enter your site's name (e.g. My Cool Blog)" required>
-        <button type="submit">Share Link</button>
-    </form>
+    <div class="container">
 
-    <div id="status">Connecting to BruLive channel...</div>
+        <div class="card">
+            <form id="linkForm">
+                <input type="url" id="linkInput" placeholder="https://your-site.com" required aria-label="Website URL">
+                <input type="url" id="thumbnailInput" placeholder="Thumbnail (optional) – https://..." aria-label="Thumbnail URL (optional)">
+                <input type="text" id="siteNameInput" placeholder="My Awesome Project" required aria-label="Site Name">
+                <button type="submit">Share Site</button>
+            </form>
+            <div id="status">Connecting to brulive channel...</div>
+        </div>
 
-    <div id="searchContainer">
-        <input type="text" id="searchInput" placeholder="Search shared sites by name or URL...">
+        <div class="card" id="searchContainer">
+            <input type="text" id="searchInput" placeholder="Search sites by name or URL...">
+        </div>
+
+        <div class="card">
+            <h2 style="margin-bottom:16px;">Shared Sites</h2>
+            <ul id="linkList"></ul>
+        </div>
+
+        <iframe id="viewer" sandbox="allow-scripts allow-same-origin allow-popups allow-forms" title="Site Preview"></iframe>
+
+        <div class="card" id="chatSection">
+            <h2>Live Group Chat</h2>
+            <div id="chatLog"></div>
+            <form id="chatForm">
+                <input type="text" id="chatInput" placeholder="Type your message..." autocomplete="off">
+                <button type="submit">Send</button>
+            </form>
+            <button id="clearChat" class="btn-small" style="margin-top:12px;background:#718096;">Clear Chat (local view only)</button>
+        </div>
+
     </div>
-
-    <section id="linksSection">
-        <h2>Shared Links</h2>
-        <ul id="linkList"></ul>
-    </section>
-
-    <section id="viewerContainer">
-        <iframe id="viewer" sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>
-    </section>
-
-    <section id="chatSection">
-        <h2>Group Chat – Say Hi!</h2>
-        <div id="chatLog"></div>
-        <form id="chatForm">
-            <input type="text" id="chatInput" placeholder="Type your message here..." autocomplete="off">
-            <button type="submit">Send</button>
-        </form>
-    </section>
 
     <footer>
         Special thanks to INEZA AIME BRUNO<br>
@@ -286,185 +175,190 @@
         @All Rights Reserved © 2026
     </footer>
 
+    <div id="toast" class="toast"></div>
+
     <script>
-        // =============================================
-        // Ably Setup – Hardcoded Key (for demo only!)
-        // =============================================
+        // CONFIG
         const API_KEY = 'y9xXqg.2tUnig:I55mAICO-q_qpR1KKt97PLYJinu_GSA8tuU760URSbM';
         const CHANNEL_NAME = 'brulive';
 
-        const ably = new Ably.Realtime({
-            key: API_KEY,
-            echoMessages: false // Don't echo your own messages back
-        });
-
+        // INIT ABLY
+        const ably = new Ably.Realtime({ key: API_KEY, echoMessages: false });
         const channel = ably.channels.get(CHANNEL_NAME);
 
-        // Connection status
         const statusEl = document.getElementById('status');
-        ably.connection.on('connected', () => {
-            statusEl.textContent = 'Connected! Ready to share & chat.';
-            statusEl.style.color = 'green';
-        });
-        ably.connection.on('failed', () => {
-            statusEl.textContent = 'Connection failed. Check key or internet.';
-            statusEl.style.color = 'red';
-        });
+        ably.connection.on('connected',   () => setStatus('Connected live ✓', 'success'));
+        ably.connection.on('failed',      () => setStatus('Connection failed – check key/internet', 'error'));
+        ably.connection.on('disconnected',() => setStatus('Disconnected – reconnecting...', 'error'));
 
-        // =============================================
-        // Link Handling
-        // =============================================
-        const linkList = document.getElementById('linkList');
-        const linkForm = document.getElementById('linkForm');
-        let allLinks = []; // Store all loaded links for searching
-
-        function addLinkToUI(linkData, animate = true) {
-            const li = document.createElement('li');
-            if (animate) li.classList.add('animate-fade');
-
-            li.innerHTML = `
-                <img src="${linkData.thumbnail}" alt="Thumbnail" onerror="this.src='https://via.placeholder.com/60?text=?'">
-                <div>
-                    <a href="#" onclick="openInIframe('${linkData.link}'); return false;">${linkData.siteName || linkData.link}</a>
-                    <small>Site: ${linkData.siteName || 'Unnamed'} | URL: ${linkData.link}</small>
-                </div>
-            `;
-            li.dataset.searchText = (linkData.siteName + ' ' + linkData.link).toLowerCase(); // For search
-            linkList.appendChild(li);
-            if (animate) linkList.scrollTop = linkList.scrollHeight;
+        function setStatus(text, type = '') {
+            statusEl.textContent = text;
+            statusEl.className = type;
         }
 
-        // Live new link
-        channel.subscribe('new_link', (msg) => {
-            allLinks.push(msg.data);
-            addLinkToUI(msg.data);
+        // LINK SHARING
+        const linkForm   = document.getElementById('linkForm');
+        const linkList   = document.getElementById('linkList');
+        const searchInput = document.getElementById('searchInput');
+        let linksCache = [];
+
+        function createLinkItem(data) {
+            const li = document.createElement('li');
+            li.className = 'link-item animate-fade-in';
+            li.dataset.search = `${(data.siteName||'').toLowerCase()} ${(data.link||'').toLowerCase()}`;
+
+            const thumbSrc = data.thumbnail && data.thumbnail.trim() 
+                ? data.thumbnail 
+                : 'https://via.placeholder.com/64?text=No+Thumb';
+
+            li.innerHTML = `
+                <img src="${thumbSrc}" alt="thumbnail" loading="lazy" onerror="this.src='https://via.placeholder.com/64?text=?'">
+                <div class="link-info">
+                    <a href="#" class="link-title" onclick="openPreview('${data.link}');return false">
+                        ${data.siteName || 'Untitled Site'}
+                    </a>
+                    <div class="link-url">${data.link}</div>
+                </div>
+                <div class="actions">
+                    <button class="btn-small" onclick="navigator.clipboard.writeText('${data.link}');showToast('Link copied!')">Copy</button>
+                </div>
+            `;
+            return li;
+        }
+
+        function addLink(data, animate = true) {
+            const item = createLinkItem(data);
+            if (animate) item.style.opacity = '0';
+            linkList.appendChild(item);
+            if (animate) setTimeout(() => item.style.opacity = '1', 50);
+        }
+
+        channel.subscribe('new_link', msg => {
+            linksCache.push(msg.data);
+            addLink(msg.data);
         });
 
-        // Submit new link
-        linkForm.addEventListener('submit', (e) => {
+        linkForm.addEventListener('submit', e => {
             e.preventDefault();
-            const link = document.getElementById('linkInput').value.trim();
-            const thumb = document.getElementById('thumbnailInput').value.trim();
+            const link     = document.getElementById('linkInput').value.trim();
+            let thumb      = document.getElementById('thumbnailInput').value.trim();
             const siteName = document.getElementById('siteNameInput').value.trim();
 
-            if (!link || !thumb || !siteName) {
-                alert('Please fill all fields: URL, Thumbnail, and Site Name!');
+            if (!link || !siteName) {
+                showToast('URL and Site Name are required', 'error');
                 return;
             }
 
-            if (!link.startsWith('http')) {
-                alert('URL must start with http or https!');
+            if (!/^https?:\/\//i.test(link)) {
+                showToast('URL must start with http:// or https://', 'error');
                 return;
             }
 
-            if (!thumb.startsWith('http')) {
-                alert('Thumbnail URL must start with http or https!');
+            // Thumbnail optional – clean or empty
+            if (thumb && !/^https?:\/\//i.test(thumb)) {
+                showToast('Thumbnail (if used) must start with http:// or https://', 'error');
                 return;
             }
 
-            const data = { link, thumbnail: thumb, siteName };
-            channel.publish('new_link', data);
-            allLinks.push(data);
+            const payload = { link, thumbnail: thumb || '', siteName, ts: Date.now() };
+            channel.publish('new_link', payload);
+            showToast('Site shared live!', 'success');
             linkForm.reset();
-            statusEl.textContent = 'Link shared live!';
-            setTimeout(() => statusEl.textContent = 'Connected! Ready to share & chat.', 3000);
         });
 
-        // =============================================
-        // Search Functionality
-        // =============================================
-        const searchInput = document.getElementById('searchInput');
-        searchInput.addEventListener('input', (e) => {
-            const query = e.target.value.toLowerCase().trim();
-            const items = linkList.querySelectorAll('li');
-
-            items.forEach((li) => {
-                if (query === '' || li.dataset.searchText.includes(query)) {
-                    li.classList.remove('hidden');
-                } else {
-                    li.classList.add('hidden');
-                }
+        // SEARCH
+        searchInput.addEventListener('input', e => {
+            const term = e.target.value.toLowerCase().trim();
+            document.querySelectorAll('.link-item').forEach(item => {
+                item.style.display = item.dataset.search.includes(term) || !term ? '' : 'none';
             });
         });
 
-        // =============================================
-        // Chat Handling
-        // =============================================
-        const chatLog = document.getElementById('chatLog');
-        const chatForm = document.getElementById('chatForm');
-        const chatInput = document.getElementById('chatInput');
+        // CHAT
+        const chatForm   = document.getElementById('chatForm');
+        const chatInput  = document.getElementById('chatInput');
+        const chatLog    = document.getElementById('chatLog');
+        let username = localStorage.getItem('bruUsername') || '';
 
-        function addChatMessage(text, isOwn = false) {
+        if (!username) {
+            username = prompt('Choose a display name for chat (optional – can be "Guest"):')?.trim() || 'Guest';
+            if (username) localStorage.setItem('bruUsername', username);
+        }
+
+        function addMessage(text, sender = 'other', time = new Date()) {
             const div = document.createElement('div');
-            div.classList.add('chat-msg', isOwn ? 'sent' : 'received');
-            div.classList.add('animate-fade');
-            div.textContent = text;
+            div.className = `chat-msg ${sender === username ? 'sent' : 'received'} animate-fade-in`;
+            div.innerHTML = `
+                <strong>${sender}</strong><br>${text}
+                <div class="msg-time">${time.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
+            `;
             chatLog.appendChild(div);
             chatLog.scrollTop = chatLog.scrollHeight;
         }
 
-        // Live chat messages
-        channel.subscribe('chat_message', (msg) => {
-            addChatMessage(msg.data.text);
+        channel.subscribe('chat_message', msg => {
+            addMessage(msg.data.text, msg.data.sender, new Date(msg.data.ts || Date.now()));
         });
 
-        // Send chat
-        chatForm.addEventListener('submit', (e) => {
+        chatForm.addEventListener('submit', e => {
             e.preventDefault();
             const text = chatInput.value.trim();
             if (!text) return;
 
-            channel.publish('chat_message', { text });
-            addChatMessage(text, true); // Show as "sent" for UX
+            const payload = { text, sender: username, ts: Date.now() };
+            channel.publish('chat_message', payload);
             chatInput.value = '';
         });
 
-        // =============================================
-        // Load History (persistence!)
-        // =============================================
-        channel.history({ limit: 200, direction: 'forwards' }, (err, page) => {
+        document.getElementById('clearChat').onclick = () => {
+            chatLog.innerHTML = '';
+            showToast('Chat cleared (your view only)');
+        };
+
+        // HISTORY – makes everything "never delete" within Ably retention
+        channel.history({ limit: 300, direction: 'forwards' }, (err, page) => {
             if (err) {
-                console.error('History error:', err);
-                statusEl.textContent = 'History load failed – but realtime still works!';
+                setStatus('History load failed – realtime still works', 'error');
+                console.error(err);
                 return;
             }
 
-            page.items.forEach((msg) => {
+            page.items.forEach(msg => {
                 if (msg.name === 'new_link') {
-                    allLinks.push(msg.data);
-                    addLinkToUI(msg.data, false); // No animate on load
+                    linksCache.push(msg.data);
+                    addLink(msg.data, false);
                 } else if (msg.name === 'chat_message') {
-                    addChatMessage(msg.data.text);
+                    addMessage(msg.data.text, msg.data.sender, new Date(msg.data.ts));
                 }
             });
 
-            // Final status
-            statusEl.textContent = `Loaded ${page.items.length} past items!`;
+            setStatus(`Loaded ${page.items.length} past items from history`, 'success');
         });
 
-        // =============================================
-        // Iframe Viewer
-        // =============================================
-        function openInIframe(url) {
-            const viewer = document.getElementById('viewer');
-            viewer.src = url;
-            viewer.style.display = 'block';
-            window.scrollTo({ top: viewer.offsetTop - 20, behavior: 'smooth' });
+        // HELPERS
+        function openPreview(url) {
+            const iframe = document.getElementById('viewer');
+            iframe.src = url;
+            iframe.style.display = 'block';
+            iframe.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
 
-        // =============================================
-        // Dark Mode Toggle
-        // =============================================
-        const toggleBtn = document.getElementById('themeToggle');
-        toggleBtn.addEventListener('click', () => {
-            document.body.classList.toggle('dark');
-            toggleBtn.textContent = document.body.classList.contains('dark') ? 'Light Mode' : 'Dark Mode';
-        });
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.style.background = type === 'success' ? 'var(--success)' : type === 'error' ? 'var(--error)' : '#333';
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3200);
+        }
 
-        // =============================================
-        // Ready!
-        // =============================================
-        console.log('BruLive ready – powered by Ably on channel: ' + CHANNEL_NAME);
+        // DARK MODE
+        document.getElementById('themeToggle').onclick = () => {
+            document.body.classList.toggle('dark');
+            document.getElementById('themeToggle').textContent = 
+                document.body.classList.contains('dark') ? 'Light Mode' : 'Dark Mode';
+        };
+
+        console.log('BruLive ready – live & persistent via Ably history');
     </script>
 </body>
 </html>

@@ -131,7 +131,7 @@
 
     <header>
         <h1>BruLive</h1>
-        <p id="intro">Live link sharing + group chat. Thumbnail optional. Messages & links persist via Ably history. Click site name for iframe preview. Search works live.</p>
+        <p id="intro">Live link sharing + group chat. Thumbnail optional. Messages & links persist via Ably history + local cache for longer storage. Click site name for iframe preview. Search works live.</p>
     </header>
 
     <div class="container">
@@ -183,6 +183,7 @@
         // ────────────────────────────────────────────────
         const API_KEY = 'y9xXqg.2tUnig:I55mAICO-q_qpR1KKt97PLYJinu_GSA8tuU760URSbM';
         const CHANNEL_NAME = 'brulive';
+        const APP_ID = 'y9xXqg'; // Your app ID, hardcoded for reference
 
         // ────────────────────────────────────────────────
         // INIT ABLY
@@ -201,12 +202,18 @@
         }
 
         // ────────────────────────────────────────────────
+        // LOCAL STORAGE KEYS – for additional caching
+        // ────────────────────────────────────────────────
+        const LOCAL_LINKS_KEY = 'brulive_links';
+        const LOCAL_MESSAGES_KEY = 'brulive_messages';
+
+        // ────────────────────────────────────────────────
         // LINK SHARING
         // ────────────────────────────────────────────────
         const linkForm   = document.getElementById('linkForm');
         const linkList   = document.getElementById('linkList');
         const searchInput = document.getElementById('searchInput');
-        let linksCache = [];
+        let linksCache = JSON.parse(localStorage.getItem(LOCAL_LINKS_KEY)) || [];
 
         function createLinkItem(data) {
             const li = document.createElement('li');
@@ -233,6 +240,11 @@
         }
 
         function addLink(data, animate = true) {
+            // Avoid duplicates by checking timestamp or content
+            if (linksCache.some(item => item.ts === data.ts)) return;
+
+            linksCache.push(data);
+            localStorage.setItem(LOCAL_LINKS_KEY, JSON.stringify(linksCache));
             const item = createLinkItem(data);
             if (animate) item.style.opacity = '0';
             linkList.appendChild(item);
@@ -240,7 +252,6 @@
         }
 
         channel.subscribe('new_link', msg => {
-            linksCache.push(msg.data);
             addLink(msg.data);
             setStatus('New link added live!', 'success');
             setTimeout(() => setStatus('Connected live ✓', 'success'), 3000);
@@ -269,6 +280,7 @@
 
             const payload = { link, thumbnail: thumb || '', siteName, ts: Date.now() };
             channel.publish('new_link', payload);
+            addLink(payload); // Add locally immediately
             showToast('Site shared live!', 'success');
             linkForm.reset();
         });
@@ -291,12 +303,20 @@
         const chatLog    = document.getElementById('chatLog');
         let username = localStorage.getItem('bruUsername') || '';
 
+        let messagesCache = JSON.parse(localStorage.getItem(LOCAL_MESSAGES_KEY)) || [];
+
         if (!username) {
             username = prompt('Choose a display name for chat (optional – can be "Guest"):')?.trim() || 'Guest';
             if (username) localStorage.setItem('bruUsername', username);
         }
 
         function addMessage(text, sender = 'other', time = new Date()) {
+            // Avoid duplicates
+            if (messagesCache.some(item => item.ts === time.getTime() && item.text === text)) return;
+
+            messagesCache.push({ text, sender, ts: time.getTime() });
+            localStorage.setItem(LOCAL_MESSAGES_KEY, JSON.stringify(messagesCache));
+
             const div = document.createElement('div');
             div.className = `chat-msg ${sender === username ? 'sent' : 'received'} animate-fade-in`;
             div.innerHTML = `
@@ -316,8 +336,10 @@
             const text = chatInput.value.trim();
             if (!text) return;
 
-            const payload = { text, sender: username, ts: Date.now() };
+            const time = new Date();
+            const payload = { text, sender: username, ts: time.getTime() };
             channel.publish('chat_message', payload);
+            addMessage(text, username, time); // Add locally immediately
             chatInput.value = '';
         });
 
@@ -327,7 +349,7 @@
         };
 
         // ────────────────────────────────────────────────
-        // HISTORY – loads past items (requires persistence enabled in Ably dashboard)
+        // HISTORY – loads from Ably + merges with local cache
         // ────────────────────────────────────────────────
         channel.history({ limit: 500, direction: 'forwards' }, (err, page) => {
             if (err) {
@@ -339,8 +361,7 @@
             let loadedCount = 0;
             page.items.forEach(msg => {
                 if (msg.name === 'new_link') {
-                    linksCache.push(msg.data);
-                    addLink(msg.data, false);
+                    addLink(msg.data);
                     loadedCount++;
                 } else if (msg.name === 'chat_message') {
                     addMessage(msg.data.text, msg.data.sender, new Date(msg.data.ts));
@@ -354,6 +375,19 @@
                 setStatus('No past items found – share something new!', 'success');
             }
         });
+
+        // ────────────────────────────────────────────────
+        // LOAD LOCAL CACHE ON START
+        // ────────────────────────────────────────────────
+        function loadLocalCache() {
+            linksCache.forEach(data => addLink(data, false));
+            messagesCache.forEach(data => addMessage(data.text, data.sender, new Date(data.ts)));
+            if (linksCache.length > 0 || messagesCache.length > 0) {
+                setStatus(`Loaded ${linksCache.length + messagesCache.length} items from local cache`, 'success');
+            }
+        }
+
+        loadLocalCache();
 
         // ────────────────────────────────────────────────
         // HELPERS
@@ -373,7 +407,9 @@
             setTimeout(() => toast.classList.remove('show'), 3200);
         }
 
+        // ────────────────────────────────────────────────
         // DARK MODE
+        // ────────────────────────────────────────────────
         document.getElementById('themeToggle').onclick = () => {
             document.body.classList.toggle('dark');
             document.getElementById('themeToggle').textContent = 
